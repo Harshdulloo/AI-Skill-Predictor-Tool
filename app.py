@@ -11,7 +11,10 @@ st.set_page_config(
     layout="centered"
 )
 
-BACKEND_URL = "http://127.0.0.1:8000"
+try:
+    BACKEND_URL = st.secrets["BACKEND_URL"]
+except:
+    BACKEND_URL = "http://127.0.0.1:8000"
 
 # ==================================
 # SESSION STATE INIT
