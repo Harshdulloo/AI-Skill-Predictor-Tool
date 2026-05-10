@@ -33,6 +33,7 @@ pydantic_core
 pydeck
 python-dateutil
 python-dotenv
+python-multipart
 pytz
 referencing
 requests

@@ -55,19 +55,16 @@ if not st.session_state.student_logged_in and not st.session_state.admin_logged_
 elif st.session_state.student_logged_in:
     menu = st.sidebar.radio(
         "Student Menu",
-        ["Skill Prediction", "My History", "My Progress","AI Assistant"]
+        ["Skill Prediction", "My History", "My Progress", "AI Assistant"]
     )
 
 # CASE 3: Admin logged in
 elif st.session_state.admin_logged_in:
     menu = st.sidebar.radio(
         "Admin Menu",
-        ["Admin Overview", "Student Analytics"]
+        ["Admin Overview", "Student Analytics", "Batch Prediction"]
     )
 
-# ==================================
-# STUDENT LOGIN
-# ==================================
 # ==================================
 # PROJECT OVERVIEW (PUBLIC HOME PAGE)
 # ==================================
@@ -135,6 +132,8 @@ if menu == "Project Overview":
     st.markdown(
         """
         - Predict skill level
+        - AI-powered personalized improvement plan
+        - AI Learning Assistant for skill guidance
         - View personal prediction history
         - Track skill progress over time
         - Access only personal data
@@ -151,6 +150,7 @@ if menu == "Project Overview":
         - Analyze overall skill distribution
         - Identify top-performing students
         - Analyze individual student performance
+        - Batch CSV prediction for entire class
         - Export prediction data for reporting
         """
     )
@@ -165,6 +165,7 @@ if menu == "Project Overview":
         - Backend: FastAPI  
         - Database: SQLite  
         - Machine Learning: Scikit-learn  
+        - AI Assistant: Google Gemini API  
         - Data Analysis and Visualization: Pandas, Plotly  
         """
     )
@@ -304,7 +305,6 @@ if st.session_state.get("show_plan_button") and menu == "Skill Prediction":
 # MY HISTORY (STUDENT)
 # ==================================
 elif menu == "My History":
-    
     require_student_login()
 
     st.title("📜 My History")
@@ -420,7 +420,6 @@ elif menu == "Admin Overview":
             use_container_width=True
         )
 
-
         # ---------------- LEADERBOARD ----------------
         st.subheader("🏆 Leaderboard (Top Consistent Students)")
         leaderboard = (
@@ -490,28 +489,123 @@ elif menu == "Student Analytics":
                 })
                 st.line_chart(df.set_index("created_at")["skill_value"])
 
+# ==================================
+# BATCH PREDICTION (ADMIN)
+# ==================================
+elif menu == "Batch Prediction":
+    require_admin_login()
+
+    st.title("📂 Batch Skill Prediction")
+    st.write("Upload a CSV file to predict skill levels for multiple students at once.")
+
+    # ---------- Download sample CSV ----------
+    sample_data = pd.DataFrame([
+        {
+            "marks": 78, "accuracy": 82, "time_taken": 28,
+            "attempts": 1, "difficulty_level": "hard",
+            "topic_coverage": 85, "consistency_score": 80
+        },
+        {
+            "marks": 45, "accuracy": 50, "time_taken": 55,
+            "attempts": 4, "difficulty_level": "easy",
+            "topic_coverage": 60, "consistency_score": 40
+        },
+        {
+            "marks": 60, "accuracy": 65, "time_taken": 35,
+            "attempts": 2, "difficulty_level": "medium",
+            "topic_coverage": 70, "consistency_score": 65
+        },
+    ])
+
+    st.download_button(
+        "⬇️ Download Sample CSV Template",
+        data=sample_data.to_csv(index=False),
+        file_name="sample_batch.csv",
+        mime="text/csv"
+    )
+
+    st.divider()
+
+    # ---------- File uploader ----------
+    uploaded_file = st.file_uploader(
+        "Upload your CSV file",
+        type=["csv"],
+        help="CSV must have columns: marks, accuracy, time_taken, attempts, difficulty_level, topic_coverage, consistency_score"
+    )
+
+    if uploaded_file:
+        # Show preview
+        preview_df = pd.read_csv(uploaded_file)
+        st.subheader("📋 Preview")
+        st.dataframe(preview_df.head(10), use_container_width=True)
+        st.caption(f"Total rows: {len(preview_df)}")
+
+        # Reset file pointer
+        uploaded_file.seek(0)
+
+        if st.button("🚀 Run Batch Prediction"):
+            with st.spinner(f"Predicting skill levels for {len(preview_df)} students..."):
+                try:
+                    res = requests.post(
+                        f"{BACKEND_URL}/predict/batch",
+                        files={"file": ("batch.csv", uploaded_file, "text/csv")}
+                    ).json()
+
+                    if "error" in res:
+                        st.error(f"Error: {res['error']}")
+                    else:
+                        results_df = pd.DataFrame(res["results"])
+
+                        st.success(f"✅ Predicted {res['total']} students successfully!")
+
+                        # ---------- Skill distribution ----------
+                        st.subheader("🎯 Skill Distribution")
+                        skill_counts = results_df["predicted_skill"].value_counts()
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Beginner", skill_counts.get("Beginner", 0))
+                        col2.metric("Intermediate", skill_counts.get("Intermediate", 0))
+                        col3.metric("Advanced", skill_counts.get("Advanced", 0))
+                        st.bar_chart(skill_counts)
+
+                        # ---------- Results table ----------
+                        st.subheader("📊 Full Results")
+                        st.dataframe(results_df, use_container_width=True)
+
+                        # ---------- Download results ----------
+                        st.download_button(
+                            "⬇️ Download Results CSV",
+                            data=results_df.to_csv(index=False),
+                            file_name="batch_predictions.csv",
+                            mime="text/csv"
+                        )
+
+                except Exception as e:
+                    st.error(f"Could not reach backend: {e}")
+
+# ==================================
+# AI ASSISTANT (STUDENT)
+# ==================================
 elif menu == "AI Assistant":
     st.session_state.show_plan_button = False
-
     require_student_login()
- 
+
     st.title("AI Learning Assistant")
     st.caption(f"Logged in as **{st.session_state.student_name}**")
- 
+
     st.write(
         "Ask me anything about your skill level, what to improve, "
         "or what to study next. I have access to your prediction history."
     )
- 
+
     # ---- Session state for chat history ----
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
- 
+
     # ---- Render existing messages ----
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
- 
+
     # ---- Suggested starter questions (shown only at start) ----
     if not st.session_state.chat_history:
         st.markdown("**Try asking:**")
@@ -526,24 +620,24 @@ elif menu == "AI Assistant":
             if cols[i % 2].button(q, key=f"starter_{i}"):
                 st.session_state._pending_message = q
                 st.rerun()
- 
+
     # ---- Handle a starter button click ----
     pending = st.session_state.pop("_pending_message", None)
- 
+
     # ---- Chat input ----
     user_input = st.chat_input("Ask about your performance...")
- 
+
     # Use either typed input or button-triggered input
     final_input = user_input or pending
- 
+
     if final_input:
         # Show user message immediately
         with st.chat_message("user"):
             st.write(final_input)
- 
+
         # Build history payload for backend (last 10 turns to stay within context)
         history_payload = st.session_state.chat_history[-10:]
- 
+
         # Call /chat endpoint
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
@@ -556,29 +650,28 @@ elif menu == "AI Assistant":
                             "history": history_payload,
                         }
                     ).json()
- 
+
                     if "reply" in res:
                         reply = res["reply"]
                         st.write(reply)
                     else:
                         reply = f"Sorry, something went wrong: {res.get('error', 'Unknown error')}"
                         st.error(reply)
- 
+
                 except Exception as e:
                     reply = f"Could not reach the AI assistant: {e}"
                     st.error(reply)
- 
+
         # Save both turns to history
         st.session_state.chat_history.append({"role": "user", "content": final_input})
         st.session_state.chat_history.append({"role": "assistant", "content": reply})
- 
+
     # ---- Clear chat button ----
     if st.session_state.chat_history:
         st.divider()
         if st.button("Clear conversation"):
             st.session_state.chat_history = []
             st.rerun()
- 
 
 # ==================================
 # LOGOUTS

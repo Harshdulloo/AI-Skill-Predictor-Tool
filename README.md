@@ -69,7 +69,7 @@ cd AI-Skill-Predictor-Tool
 
 ### 2. Install dependencies
 ```bash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ### 3. Set up environment variables
@@ -82,7 +82,7 @@ GEMINI_API_KEY=your_gemini_api_key
 
 ### 4. Start the backend
 ```bash
-python -m uvicorn main:app --reload
+python3 -m uvicorn main:app --reload
 ```
 
 ### 5. Start the frontend
