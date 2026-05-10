@@ -139,11 +139,3 @@ To demonstrate how machine learning, AI integration, data analytics, and full-st
 **Harsh Dulloo**  
 B.Tech Computer Science Engineering  
 Chandigarh Group of Colleges (CGC-COE), Landran — 2026
-??//
-```python
-python -m uvicorn main:app --reload
-```
-### 3. Start frontend
-```python
-export PATH=$PATH:~/Library/Python/3.9/bin
-streamlit run app.py
