@@ -306,7 +306,7 @@ Be encouraging. Use bullet points. Keep it under 200 words.
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={api_key}",
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}",
                 headers={"content-type": "application/json"},
                 json={"contents": [{"role": "user", "parts": [{"text": prompt}]}]}
             )
@@ -568,7 +568,7 @@ async def chat_with_ai(data: ChatRequest):
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={api_key}",
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}",
                 headers={"content-type": "application/json"},
                 json={"contents": all_messages}
             )
